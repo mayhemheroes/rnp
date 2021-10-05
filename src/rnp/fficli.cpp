@@ -863,6 +863,12 @@ done:
 }
 
 bool
+cli_rnp_t::change_key_protection(const std::string &key)
+{
+    return false;
+}
+
+bool
 cli_rnp_t::edit_key(const std::string &key)
 {
     if (cfg().get_bool(CFG_CHK_25519_BITS)) {
@@ -870,6 +876,9 @@ cli_rnp_t::edit_key(const std::string &key)
     }
     if (cfg().get_bool(CFG_FIX_25519_BITS)) {
         return fix_cv25519_subkey(key, false);
+    }
+    if (cfg().get_bool(CFG_KEY_PASSWD)) {
+        return change_key_protection(key);
     }
 
     /* more options, like --passwd, --unprotect, --expiration are to come */

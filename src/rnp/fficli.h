@@ -100,6 +100,8 @@ class cli_rnp_t {
 
     bool fix_cv25519_subkey(const std::string &key, bool checkonly = false);
 
+    bool change_key_protection(const std::string &key);
+
     bool edit_key(const std::string &key);
 };
 

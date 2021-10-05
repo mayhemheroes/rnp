@@ -125,7 +125,7 @@ enum optdefs {
     OPT_VERBOSE,
     OPT_COREDUMPS,
     OPT_PASSWDFD,
-    OPT_PASSWD,
+    OPT_PASSWORD,
     OPT_PASSWORDS,
     OPT_EXPIRATION,
     OPT_CREATION,
@@ -190,7 +190,7 @@ static struct option options[] = {
   {"algorithm", required_argument, NULL, OPT_HASH_ALG},
   {"verbose", no_argument, NULL, OPT_VERBOSE},
   {"pass-fd", required_argument, NULL, OPT_PASSWDFD},
-  {"password", required_argument, NULL, OPT_PASSWD},
+  {"password", required_argument, NULL, OPT_PASSWORD},
   {"passwords", required_argument, NULL, OPT_PASSWORDS},
   {"output", required_argument, NULL, OPT_OUTPUT},
   {"results", required_argument, NULL, OPT_RESULTS},
@@ -447,7 +447,7 @@ setoption(rnp_cfg &cfg, int val, const char *arg)
         }
         cfg.set_str(CFG_PASSFD, arg);
         return true;
-    case OPT_PASSWD:
+    case OPT_PASSWORD:
         if (!arg) {
             ERR_MSG("No password argument provided");
             return false;

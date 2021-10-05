@@ -36,7 +36,7 @@ typedef enum {
     OPT_VERBOSE,
     OPT_COREDUMPS,
     OPT_PASSWDFD,
-    OPT_PASSWD,
+    OPT_PASSWORD,
     OPT_RESULTS,
     OPT_CIPHER,
     OPT_FORMAT,
@@ -55,6 +55,7 @@ typedef enum {
     OPT_NOTTY,
     OPT_FIX_25519_BITS,
     OPT_CHK_25519_BITS,
+    OPT_KEY_PASSWD,
 
     /* debug */
     OPT_DEBUG

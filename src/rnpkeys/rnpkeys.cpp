@@ -80,6 +80,7 @@ const char *usage = "-h, --help OR\n"
                     "\t[--rev-type, --rev-reason] AND/OR\n"
                     "\t[--check-cv25519-bits] AND/OR\n"
                     "\t[--fix-cv25519-bits] AND/OR\n"
+                    "\t[--passwd] AND/OR\n"
                     "\t[--verbose]\n";
 
 struct option options[] = {
@@ -121,7 +122,7 @@ struct option options[] = {
   {"expiration", required_argument, NULL, OPT_EXPIRATION},
   {"verbose", no_argument, NULL, OPT_VERBOSE},
   {"pass-fd", required_argument, NULL, OPT_PASSWDFD},
-  {"password", required_argument, NULL, OPT_PASSWD},
+  {"password", required_argument, NULL, OPT_PASSWORD},
   {"results", required_argument, NULL, OPT_RESULTS},
   {"cipher", required_argument, NULL, OPT_CIPHER},
   {"expert", no_argument, NULL, OPT_EXPERT},
@@ -135,6 +136,7 @@ struct option options[] = {
   {"notty", no_argument, NULL, OPT_NOTTY},
   {"fix-cv25519-bits", no_argument, NULL, OPT_FIX_25519_BITS},
   {"check-cv25519-bits", no_argument, NULL, OPT_CHK_25519_BITS},
+  {"passwd", no_argument, NULL, OPT_KEY_PASSWD},
   {NULL, 0, NULL, 0},
 };
 
@@ -558,7 +560,7 @@ setoption(rnp_cfg &cfg, optdefs_t *cmd, int val, const char *arg)
         }
         cfg.set_str(CFG_PASSFD, arg);
         return true;
-    case OPT_PASSWD:
+    case OPT_PASSWORD:
         if (!arg) {
             ERR_MSG("No password argument provided");
             return false;
@@ -647,6 +649,9 @@ setoption(rnp_cfg &cfg, optdefs_t *cmd, int val, const char *arg)
         return true;
     case OPT_CHK_25519_BITS:
         cfg.set_bool(CFG_CHK_25519_BITS, true);
+        return true;
+    case OPT_KEY_PASSWD:
+        cfg.set_bool(CFG_KEY_PASSWD, true);
         return true;
     default:
         *cmd = CMD_HELP;
