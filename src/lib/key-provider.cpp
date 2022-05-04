@@ -33,6 +33,41 @@
 #include "utils.h"
 #include <rekey/rnp_key_store.h>
 
+static bool
+key_try(const pgp_key_t *seckey, const pgp_key_search_t *search)
+{
+    auto try_dec_ctx = &search->by.try_decrypt_cb;
+
+    /* Decrypt key */
+    const pgp_key_pkt_t *decrypted_seckey = NULL;
+    if (seckey->encrypted()) {
+        pgp_password_ctx_t pass_ctx{.op = PGP_OP_DECRYPT, .key = seckey};
+        decrypted_seckey = pgp_decrypt_seckey(*seckey, *(const pgp_password_provider_t*)try_dec_ctx->password_provider, pass_ctx);
+        if (!decrypted_seckey) {
+            return false; //RNP_ERROR_BAD_PASSWORD;
+        }
+    } else {
+        decrypted_seckey = &seckey->pkt();
+    }
+
+    /* Try to initialize the decryption */
+    rnp_result_t errcode = RNP_ERROR_NO_SUITABLE_KEY;
+    pgp_key_pkt_t mutable_decrypted_seckey(*decrypted_seckey);
+    if (try_dec_ctx->encrypted_try_key_wrapper(try_dec_ctx, &mutable_decrypted_seckey)) {
+        return true;
+    } else {
+        return false;
+    }
+
+    // TODO pass up the decrypted key
+#if 0
+    /* Destroy decrypted key */
+    if (seckey->encrypted()) {
+        delete decrypted_seckey;
+    }
+#endif
+}
+
 bool
 rnp_key_matches_search(const pgp_key_t *key, const pgp_key_search_t *search)
 {
@@ -52,7 +87,7 @@ rnp_key_matches_search(const pgp_key_t *key, const pgp_key_search_t *search)
         }
         break;
     case PGP_KEY_SEARCH_CAN_DECRYPT:
-        return true;
+        return key_try(key, search);
     default:
         assert(false);
         break;

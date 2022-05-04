@@ -41,12 +41,12 @@ typedef enum {
 } pgp_key_search_type_t;
 
 typedef struct pgp_try_decrypt_cb_t {
-    bool (*encrypted_try_key_wrapper)(pgp_try_decrypt_cb_t *ctx, pgp_key_pkt_t *seckey);
+    bool (*encrypted_try_key_wrapper)(const pgp_try_decrypt_cb_t *ctx, pgp_key_pkt_t *seckey);
     const void/*pgp_password_provider_t*/ *password_provider;
     const void *src_enc_param;
     const void *sesskey;
     const void *secctx;
-};
+} pgp_try_decrypt_cb_t;
 
 typedef struct pgp_key_search_t {
     pgp_key_search_type_t type;

@@ -2031,7 +2031,7 @@ encrypted_read_packet_data(pgp_source_encrypted_param_t *param)
 }
 
 static bool
-encrypted_try_key_wrapper(pgp_try_decrypt_cb_t *ctx,
+encrypted_try_key_wrapper(const pgp_try_decrypt_cb_t *ctx,
                           pgp_key_pkt_t *seckey)
 {
     return encrypted_try_key((pgp_source_encrypted_param_t *)ctx->src_enc_param,
@@ -2108,12 +2108,15 @@ key_fetch_and_try(pgp_parse_handler_t *         handler,
         delete decrypted_seckey;
     }
 #endif
-    // seckey should be decrypted by now
-    
 
-    assert(!seckey->encrypted());
-    // TODO on_decryption_start
+    // whatever had to be done in encrypted_try_key() has been done already BUT ONLY IN CAN_DECRYPT CASE
+    // TODO obtain seckey, decrypted_seckey as opened, without entering the passphrase for the second time
 
+    /* inform handler that we used this pubenc */
+    if (handler->on_decryption_start) {
+        // TODO fill pubenc.keyid, it's still zeros
+        handler->on_decryption_start(&pubenc, NULL, handler->param);
+    }
 
     return RNP_SUCCESS;
 }

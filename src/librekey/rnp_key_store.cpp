@@ -768,6 +768,7 @@ rnp_key_store_search(rnp_key_store_t *       keyring,
         return after ? NULL : key;
     }
 
+    // XXX iteration is happening here. but is this the only key provider fn?
     // if after is provided, make sure it is a member of the appropriate list
     auto it =
       std::find_if(keyring->keys.begin(), keyring->keys.end(), [after](const pgp_key_t &key) {
@@ -781,7 +782,7 @@ rnp_key_store_search(rnp_key_store_t *       keyring,
         it = std::next(it);
     }
     it = std::find_if(it, keyring->keys.end(), [search](const pgp_key_t &key) {
-        return rnp_key_matches_search(&key, search);
+        return rnp_key_matches_search(&key, search); // while iteration, here's where we perform the criteria check
     });
     return (it == keyring->keys.end()) ? NULL : &(*it);
 }
