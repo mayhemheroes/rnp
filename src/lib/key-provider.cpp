@@ -51,6 +51,8 @@ rnp_key_matches_search(const pgp_key_t *key, const pgp_key_search_t *search)
             return true;
         }
         break;
+    case PGP_KEY_SEARCH_CAN_DECRYPT:
+        return true;
     default:
         assert(false);
         break;

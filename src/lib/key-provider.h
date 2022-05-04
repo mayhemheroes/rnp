@@ -36,8 +36,17 @@ typedef enum {
     PGP_KEY_SEARCH_KEYID,
     PGP_KEY_SEARCH_FINGERPRINT,
     PGP_KEY_SEARCH_GRIP,
-    PGP_KEY_SEARCH_USERID
+    PGP_KEY_SEARCH_USERID,
+    PGP_KEY_SEARCH_CAN_DECRYPT,
 } pgp_key_search_type_t;
+
+typedef struct pgp_try_decrypt_cb_t {
+    bool (*encrypted_try_key_wrapper)(pgp_try_decrypt_cb_t *ctx, pgp_key_pkt_t *seckey);
+    const void/*pgp_password_provider_t*/ *password_provider;
+    const void *src_enc_param;
+    const void *sesskey;
+    const void *secctx;
+};
 
 typedef struct pgp_key_search_t {
     pgp_key_search_type_t type;
@@ -46,6 +55,7 @@ typedef struct pgp_key_search_t {
         pgp_key_grip_t    grip;
         pgp_fingerprint_t fingerprint;
         char              userid[MAX_ID_LENGTH + 1];
+        pgp_try_decrypt_cb_t try_decrypt_cb;
     } by;
 } pgp_key_search_t;
 

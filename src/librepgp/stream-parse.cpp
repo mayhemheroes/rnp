@@ -2030,12 +2030,22 @@ encrypted_read_packet_data(pgp_source_encrypted_param_t *param)
     return RNP_SUCCESS;
 }
 
+static bool
+encrypted_try_key_wrapper(pgp_try_decrypt_cb_t *ctx,
+                          pgp_key_pkt_t *seckey)
+{
+    return encrypted_try_key((pgp_source_encrypted_param_t *)ctx->src_enc_param,
+                             (const pgp_pk_sesskey_t *)ctx->sesskey,
+                             seckey,
+                             *(rnp::SecurityContext *)ctx->secctx);
+}
+
 /**
  * @brief Fetch a key by keyid and try to use it for decryption.
  *
  * @param handler parsing handler context.
  * @param param decryption context.
- * @param pubenc public-key encrypted session key packet.
+ * @param pubenc public-key encrypted session key packet. Can be zero per RFC 4880, 5.1.
  * @return RNP_SUCCESS, RNP_ERROR_NO_SUITABLE_KEY or other.
  */
 static rnp_result_t
@@ -2052,10 +2062,26 @@ key_fetch_and_try(pgp_parse_handler_t *         handler,
     keyctx.search.type = PGP_KEY_SEARCH_KEYID;
     keyctx.search.by.keyid = pubenc.key_id;
 
+    const std::array<unsigned char, 8> zeros{
+        0,
+    };
+    if (pubenc.key_id == zeros) {
+        keyctx.search.type = PGP_KEY_SEARCH_CAN_DECRYPT;
+        // TODO package up
+        // encrypted_try_key(param, &pubenc, decrypted_seckey, *handler->ctx->ctx)
+        // so that it can be run in key-provider.cpp
+        keyctx.search.by.try_decrypt_cb.encrypted_try_key_wrapper = encrypted_try_key_wrapper;
+        keyctx.search.by.try_decrypt_cb.password_provider = handler->password_provider;
+        keyctx.search.by.try_decrypt_cb.src_enc_param = param;
+        keyctx.search.by.try_decrypt_cb.sesskey = &pubenc;
+        keyctx.search.by.try_decrypt_cb.secctx = handler->ctx->ctx;
+    }
+
     /* Get the key if any */
     if (!(seckey = pgp_request_key(handler->key_provider, &keyctx))) {
         return RNP_ERROR_NO_SUITABLE_KEY;
     }
+#if 0
     /* Decrypt key */
     if (seckey->encrypted()) {
         pgp_password_ctx_t pass_ctx{.op = PGP_OP_DECRYPT, .key = seckey};
@@ -2081,8 +2107,15 @@ key_fetch_and_try(pgp_parse_handler_t *         handler,
     if (seckey->encrypted()) {
         delete decrypted_seckey;
     }
+#endif
+    // seckey should be decrypted by now
+    
 
-    return errcode;
+    assert(!seckey->encrypted());
+    // TODO on_decryption_start
+
+
+    return RNP_SUCCESS;
 }
 
 static rnp_result_t
@@ -2144,83 +2177,15 @@ init_encrypted_src(pgp_parse_handler_t *handler, pgp_source_t *src, pgp_source_t
             const std::array<unsigned char, 8> zeros{
               0,
             };
-            if (pubenc.key_id == zeros) {
-                /* RFC 4880, 5.1:
-                 * An implementation MAY accept or use a Key ID of zero as a "wild card"
-                 * or "speculative" Key ID.  In this case, the receiving implementation
-                 * would try all available private keys, checking for a valid decrypted
-                 * session key.  This format helps reduce traffic analysis of messages. */
-                rnp_identifier_iterator_t it = NULL;
-                rnp_key_handle_t          handle = NULL;
-                const char *              identifier = NULL;
-                rnp::LogStop              log_stop; // disable decryption failures logging
-
-                /* Iterate through the keys */
-                rnp_ffi_t ffi = (rnp_ffi_t) handler->key_provider->userdata;
-                if (rnp_identifier_iterator_create(ffi, &it, "keyid")) {
-                    return false;
-                }
-
-                while (!have_key && !rnp_identifier_iterator_next(it, &identifier)) {
-                    if (!identifier) {
-                        break;
-                    }
-                    if (rnp_locate_key(ffi, "keyid", identifier, &handle) || !handle) {
-                        RNP_LOG("Locating key %s failed", identifier);
-                        break;
-                    }
-
-                    bool key_is_secret = false;
-                    rnp_key_have_secret(handle, &key_is_secret);
-                    bool key_can_decrypt = false;
-                    if (key_is_secret) {
-                        key_can_decrypt = handle->sec->can_encrypt();
-                    }
-                    rnp_key_handle_destroy(handle);
-                    // Try only secret, encrypt-capable keys
-                    if (!(key_is_secret && key_can_decrypt)) {
-                        continue;
-                    }
-
-                    /* Parse keyid into binary form and put into pubenc object instead of zeros
-                     */
-                    assert(strlen(identifier) == PGP_KEY_ID_SIZE * 2);
-                    assert(pubenc.key_id.size() == PGP_KEY_ID_SIZE);
-                    if (rnp::hex_decode(identifier,
-                                        pubenc.key_id.data(),
-                                        pubenc.key_id.size()) != PGP_KEY_ID_SIZE) {
-                        assert(false);
-                        RNP_LOG("Internal error: failed to parse keyid %s", identifier);
-                        continue;
-                    }
-
-                    errcode = key_fetch_and_try(handler, param, pubenc);
-                    if (!errcode) {
-                        have_key = true;
-                        break;
-                    } else if (errcode == RNP_ERROR_NO_SUITABLE_KEY) {
-                        continue;
-                    } else {
-                        RNP_LOG("Error while trying keyid %s: %d", identifier, errcode);
-                        continue;
-                    }
-                }
-                rnp_identifier_iterator_destroy(it);
-
-                if (have_key) {
-                    break;
-                }
+            errcode = key_fetch_and_try(handler, param, pubenc);
+            if (!errcode) {
+                have_key = true;
+                break;
+            } else if (errcode == RNP_ERROR_NO_SUITABLE_KEY) {
+                continue;
             } else {
-                errcode = key_fetch_and_try(handler, param, pubenc);
-                if (!errcode) {
-                    have_key = true;
-                    break;
-                } else if (errcode == RNP_ERROR_NO_SUITABLE_KEY) {
-                    continue;
-                } else {
-                    RNP_LOG("Error getting the recipient key: %d", errcode);
-                    continue;
-                }
+                RNP_LOG("Error getting the recipient key: %d", errcode);
+                continue;
             }
         }
     }
