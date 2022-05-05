@@ -52,8 +52,9 @@ key_try(const pgp_key_t *seckey, const pgp_key_search_t *search)
 
     /* Try to initialize the decryption */
     rnp_result_t errcode = RNP_ERROR_NO_SUITABLE_KEY;
-    pgp_key_pkt_t mutable_decrypted_seckey(*decrypted_seckey);
-    if (try_dec_ctx->encrypted_try_key_wrapper(try_dec_ctx, &mutable_decrypted_seckey)) {
+    //pgp_key_pkt_t mutable_decrypted_seckey(*decrypted_seckey); // maybe this is why it doesn't decrypt
+    pgp_key_pkt_t *mutable_decrypted_seckey = const_cast<pgp_key_pkt_t*>(decrypted_seckey);
+    if (try_dec_ctx->encrypted_try_key_wrapper(try_dec_ctx, mutable_decrypted_seckey)) {
         return true;
     } else {
         return false;
