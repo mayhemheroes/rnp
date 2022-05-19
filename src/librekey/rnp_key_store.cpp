@@ -755,6 +755,7 @@ rnp_key_store_get_key_grip(const pgp_key_material_t *key, pgp_key_grip_t &grip)
 pgp_key_t *
 rnp_key_store_search(rnp_key_store_t *       keyring,
                      const pgp_key_search_t *search,
+                     wildcard_key_search_ctx_t *wctx,
                      pgp_key_t *             after)
 {
     // since keys are distinguished by fingerprint then just do map lookup

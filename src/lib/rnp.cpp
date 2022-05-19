@@ -91,13 +91,15 @@ find_key(rnp_ffi_t               ffi,
          pgp_key_request_ctx_t * ctx,
          const pgp_key_search_t *search,
          key_type_t              key_type,
-         bool                    try_key_provider)
+         bool                    try_key_provider,
+         wildcard_key_search_ctx_t *wctx)
 {
     pgp_key_t *key = NULL;
     // bool try_key_provider is defined in the arguments and is used in internal decision making
     pgp_key_t *after = ffi->last_key;
 
     if (search->type == PGP_KEY_SEARCH_KEYID && search->by.keyid == rnp::zero_keyid) {
+        assert(wctx);
         assert(key_type == KEY_TYPE_SECRET);
         // if handling wildcard, let key provider do its work first
 
@@ -145,6 +147,7 @@ find_key(rnp_ffi_t               ffi,
         return key;
 
     } else {
+        assert(!wctx);
         assert(!ctx->wildcard_search_in_progress);
         assert(!ffi->last_key);
 
@@ -170,7 +173,7 @@ find_key(rnp_ffi_t               ffi,
                               identifier_type,
                               identifier,
                               key_type == KEY_TYPE_SECRET);
-                return find_key(ffi, ctx, search, key_type, false);
+                return find_key(ffi, ctx, search, key_type, false, NULL);
             }
         }
     }
@@ -178,10 +181,10 @@ find_key(rnp_ffi_t               ffi,
 }
 
 static pgp_key_t *
-ffi_key_provider(pgp_key_request_ctx_t *ctx, void *userdata)
+ffi_key_provider(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata)
 {
     rnp_ffi_t ffi = (rnp_ffi_t) userdata;
-    pgp_key_t *ret = find_key(ffi, ctx, &ctx->search, ctx->secret ? KEY_TYPE_SECRET : KEY_TYPE_PUBLIC, true);
+    pgp_key_t *ret = find_key(ffi, ctx, &ctx->search, ctx->secret ? KEY_TYPE_SECRET : KEY_TYPE_PUBLIC, true, wctx);
 
     return ret;
 }
@@ -6841,7 +6844,7 @@ try {
     search.type = PGP_KEY_SEARCH_FINGERPRINT;
     search.by.fingerprint = pkey->primary_fp();
     pgp_key_request_ctx_t ctx{};
-    pgp_key_t *prim_sec = find_key(key->ffi, &ctx, &search, KEY_TYPE_SECRET, true);
+    pgp_key_t *prim_sec = find_key(key->ffi, &ctx, &search, KEY_TYPE_SECRET, true, NULL);
     if (!prim_sec) {
         FFI_LOG(key->ffi, "Primary secret key not found.");
         return RNP_ERROR_KEY_NOT_FOUND;
@@ -6852,7 +6855,7 @@ try {
     }
     prim_sec->revalidate(*key->ffi->secring);
     pgp_key_request_ctx_t ctx2{};
-    pgp_key_t *prim_pub = find_key(key->ffi, &ctx2, &search, KEY_TYPE_PUBLIC, true);
+    pgp_key_t *prim_pub = find_key(key->ffi, &ctx2, &search, KEY_TYPE_PUBLIC, true, NULL);
     if (prim_pub) {
         prim_pub->revalidate(*key->ffi->pubring);
     }

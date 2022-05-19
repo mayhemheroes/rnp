@@ -61,12 +61,18 @@ rnp_key_matches_search(const pgp_key_t *key, const pgp_key_search_t *search)
 pgp_key_t *
 pgp_request_key(const pgp_key_provider_t *provider, pgp_key_request_ctx_t *ctx)
 {
+    return pgp_request_key_ex(provider, ctx, NULL);
+}
+
+pgp_key_t *
+pgp_request_key_ex(const pgp_key_provider_t *provider, pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx)
+{
     pgp_key_t *key = NULL;
     if (!provider || !provider->callback || !ctx) {
         return NULL;
     }
 
-    if (!(key = provider->callback(ctx, provider->userdata))) {
+    if (!(key = provider->callback(ctx, wctx, provider->userdata))) {
         return NULL;
     }
     // confirm that the key actually matches the search criteria
@@ -77,7 +83,7 @@ pgp_request_key(const pgp_key_provider_t *provider, pgp_key_request_ctx_t *ctx)
 }
 
 pgp_key_t *
-rnp_key_provider_key_ptr_list(pgp_key_request_ctx_t *ctx, void *userdata)
+rnp_key_provider_key_ptr_list(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata)
 {
     std::vector<pgp_key_t *> *key_list = (std::vector<pgp_key_t *> *) userdata;
     for (auto key : *key_list) {
@@ -89,14 +95,14 @@ rnp_key_provider_key_ptr_list(pgp_key_request_ctx_t *ctx, void *userdata)
 }
 
 pgp_key_t *
-rnp_key_provider_chained(pgp_key_request_ctx_t *ctx, void *userdata)
+rnp_key_provider_chained(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata)
 {
     for (pgp_key_provider_t **pprovider = (pgp_key_provider_t **) userdata;
          pprovider && *pprovider;
          pprovider++) {
         pgp_key_provider_t *provider = *pprovider;
         pgp_key_t *         key = NULL;
-        if ((key = provider->callback(ctx, provider->userdata))) {
+        if ((key = provider->callback(ctx, wctx, provider->userdata))) {
             return key;
         }
     }
@@ -104,7 +110,7 @@ rnp_key_provider_chained(pgp_key_request_ctx_t *ctx, void *userdata)
 }
 
 pgp_key_t *
-rnp_key_provider_store(pgp_key_request_ctx_t *ctx, void *userdata)
+rnp_key_provider_store(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata)
 {
     rnp_key_store_t *ks = (rnp_key_store_t *) userdata;
 

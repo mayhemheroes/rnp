@@ -62,7 +62,10 @@ typedef struct pgp_key_request_ctx_t {
     bool             wildcard_search_in_progress;
 } pgp_key_request_ctx_t;
 
-typedef pgp_key_t *pgp_key_callback_t(pgp_key_request_ctx_t *ctx, void *userdata);
+typedef struct wildcard_key_search_ctx_t {
+} wildcard_key_search_ctx_t;
+
+typedef pgp_key_t *pgp_key_callback_t(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx,void *userdata);
 
 typedef struct pgp_key_provider_t {
     pgp_key_callback_t *callback;
@@ -89,19 +92,24 @@ bool rnp_key_matches_search(const pgp_key_t *key, const pgp_key_search_t *search
 pgp_key_t *pgp_request_key(const pgp_key_provider_t *   provider,
                            pgp_key_request_ctx_t *ctx);
 
+pgp_key_t *pgp_request_key_ex(const pgp_key_provider_t *provider,
+                              pgp_key_request_ctx_t *ctx,
+                              wildcard_key_search_ctx_t *wctx);
+
+
 /** key provider callback that searches a list of pgp_key_t pointers
  *
  *  @param ctx
  *  @param userdata must be a list of key pgp_key_t**
  */
-pgp_key_t *rnp_key_provider_key_ptr_list(pgp_key_request_ctx_t *ctx, void *userdata);
+pgp_key_t *rnp_key_provider_key_ptr_list(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata);
 
 /** key provider callback that searches a given store
  *
  *  @param ctx
  *  @param userdata must be a pointer to rnp_key_store_t
  */
-pgp_key_t *rnp_key_provider_store(pgp_key_request_ctx_t *ctx, void *userdata);
+pgp_key_t *rnp_key_provider_store(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata);
 
 /** key provider that calls other key providers
  *
@@ -109,6 +117,6 @@ pgp_key_t *rnp_key_provider_store(pgp_key_request_ctx_t *ctx, void *userdata);
  *  @param userdata must be an array pgp_key_provider_t pointers,
  *         ending with a NULL.
  */
-pgp_key_t *rnp_key_provider_chained(pgp_key_request_ctx_t *ctx, void *userdata);
+pgp_key_t *rnp_key_provider_chained(pgp_key_request_ctx_t *ctx, wildcard_key_search_ctx_t *wctx, void *userdata);
 
 #endif

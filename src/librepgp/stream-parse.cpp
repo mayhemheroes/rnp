@@ -2098,10 +2098,11 @@ init_encrypted_src(pgp_parse_handler_t *handler, pgp_source_t *src, pgp_source_t
         for (auto &pubenc : param->pubencs) {
             // TODO make keyctx such that lib/rnp.cpp's find_key() can distinguish between multiple consecutive zero_keyid in pubencs
             // either drop `const` in pgp_request_key() signature, or make keyctx identifiable (thread safety woes ahead!) or do something nasty
-            pgp_key_request_ctx_t keyctx = {};
+            pgp_key_request_ctx_t keyctx{};
             keyctx.op = PGP_OP_DECRYPT_SYM;
             keyctx.secret = true;
             keyctx.search.type = PGP_KEY_SEARCH_KEYID;
+            wildcard_key_search_ctx_t wildcard_ctx{};
 
             keyctx.search.by.keyid = pubenc.key_id;
             //log_keyid("Searching for keyid %s", pubenc.key_id);
@@ -2109,7 +2110,7 @@ init_encrypted_src(pgp_parse_handler_t *handler, pgp_source_t *src, pgp_source_t
             // pgp_request_key() is done in a loop to support hidden recipients presented as zero keyid.
             while (!have_key) {
                 /* Get the key if any */
-                seckey = pgp_request_key(handler->key_provider, &keyctx);
+                seckey = pgp_request_key_ex(handler->key_provider, &keyctx, &wildcard_ctx);
                 if (!seckey) {
                     //RNP_LOG("pgp_request_key() returned NULL");
                     errcode = RNP_ERROR_NO_SUITABLE_KEY;
