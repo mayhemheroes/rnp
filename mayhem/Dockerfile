@@ -15,8 +15,9 @@
 ################################################################################
 
 FROM gcr.io/oss-fuzz-base/base-builder
-RUN apt-get update
-RUN apt-get install -y make autoconf automake libtool cmake patchelf libbz2-dev zlib1g-dev libjson-c-dev build-essential python wget
+RUN apt-get update && \
+    apt-get install -y --fix-missing make autoconf automake libtool cmake patchelf libbz2-dev zlib1g-dev libjson-c-dev build-essential python3 wget || \
+    (apt-get update && apt-get install -y --fix-missing make autoconf automake libtool cmake patchelf libbz2-dev zlib1g-dev libjson-c-dev build-essential python3 wget)
 
 COPY . rnp
 RUN rm -rf rnp/mayhem
