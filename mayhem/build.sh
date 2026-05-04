@@ -15,6 +15,9 @@
 #
 ################################################################################
 
+# Switch from libc++ to libstdc++ to fix char_traits<unsigned char> compatibility
+export CXXFLAGS="${CXXFLAGS//-stdlib=libc++/-stdlib=libstdc++}"
+
 cd $SRC
 
 wget -qO- https://botan.randombit.net/releases/Botan-2.16.0.tar.xz | tar xJ
@@ -22,7 +25,7 @@ cd Botan-2.16.0
 python3 ./configure.py --prefix=/usr --cc-bin=$CXX --cc-abi-flags="$CXXFLAGS" \
                --disable-modules=locking_allocator \
                --unsafe-fuzzer-mode --build-fuzzers=libfuzzer \
-               --with-fuzzer-lib='FuzzingEngine'
+               --with-fuzzer-lib=FuzzingEngine
 make -j$(nproc)
 make install
 
@@ -43,6 +46,7 @@ cmake \
     -DENABLE_FUZZERS=1 \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
+    -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
     -DCMAKE_C_LINK_EXECUTABLE="$CXX <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS>  -o <TARGET> <LINK_LIBRARIES>" \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DBUILD_SHARED_LIBS=on \
@@ -55,7 +59,7 @@ FUZZERS=`find src/fuzzing -maxdepth 1 -type f -name "fuzz_*" -exec basename {} \
 printf "Detected fuzzers: \n$FUZZERS\n"
 for f in $FUZZERS; do
     cp src/fuzzing/$f "${OUT}/"
-    patchelf --set-rpath '$ORIGIN/lib' "${OUT}/$f" || echo "patchelf failed with $?, ignoring."
+    patchelf --set-rpath /lib "${OUT}/$f" || echo "patchelf failed with $?, ignoring."
     zip -j -r "${OUT}/${f}_seed_corpus.zip" $SRC/fuzzing_corpus/
 done
 
