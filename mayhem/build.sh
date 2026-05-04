@@ -19,7 +19,7 @@ cd $SRC
 
 wget -qO- https://botan.randombit.net/releases/Botan-2.16.0.tar.xz | tar xJ
 cd Botan-2.16.0
-./configure.py --prefix=/usr --cc-bin=$CXX --cc-abi-flags="$CXXFLAGS" \
+python3 ./configure.py --prefix=/usr --cc-bin=$CXX --cc-abi-flags="$CXXFLAGS" \
                --disable-modules=locking_allocator \
                --unsafe-fuzzer-mode --build-fuzzers=libfuzzer \
                --with-fuzzer-lib='FuzzingEngine'
